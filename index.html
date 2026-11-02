@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEGIS-OSINT // Digital Forensics & Threat Intelligence Command Center</title>
+  <meta name="description" content="Unified Digital Forensics and OSINT Dashboard aggregating real-time intelligence feeds inspired by Osiris AI, WorldWatch, Monitor The Situation, CISA KEV, and global surveillance streams.">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Cyber HUD Custom Design System -->
+  <link rel="stylesheet" href="css/cyber-hud.css">
+  
+  <!-- Favicon icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. CYBER SECURITY INTRO BOOT SEQUENCE (ROTATING GLOBE & MATRIX ANIMATION)
+       ========================================================================= -->
+  <div id="cyber-boot-screen">
+    <div class="boot-grid-backdrop"></div>
+    <div class="boot-scanline"></div>
+
+    <div class="boot-content-wrapper">
+      <!-- 3D Rotating Cyber Globe Canvas -->
+      <div id="intro-globe-canvas"></div>
+
+      <h1 class="boot-title">AEGIS-OSINT // FORENSIC RECON</h1>
+      <p class="boot-subtitle">DIGITAL FORENSICS • SATELLITE TELEMETRY • KINETIC RADAR • THREAT INTEL</p>
+
+      <!-- Neon Progress Bar -->
+      <div class="boot-progress-bar">
+        <div id="boot-progress-fill"></div>
+      </div>
+
+      <!-- Scrolling Security Terminal Logs -->
+      <div id="boot-terminal-logs"></div>
+
+      <!-- Action Button -->
+      <button id="btn-enter-command">ENTER COMMAND CENTER &gt;&gt;</button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       2. MAIN DASHBOARD INTERFACE
+       ========================================================================= -->
+  <div id="app-container">
+
+    <!-- TOP HEADER / MILITARY COMMAND RIBBON -->
+    <header class="hud-header">
+      <div class="hud-brand">
+        <div class="brand-logo-icon">⚡</div>
+        <div class="brand-text">
+          <h1>AEGIS-OSINT COMMAND</h1>
+          <span>DIGITAL FORENSICS &amp; THREAT TELEMETRY // v4.8</span>
+        </div>
+      </div>
+
+      <!-- Live Military Telemetry Strip -->
+      <div class="hud-telemetry-strip">
+        <div class="telemetry-item defcon-badge">
+          <span>⚠️ DEFCON 2 [HIGH ALERT]</span>
+        </div>
+        <div class="telemetry-item">
+          <span>⏰ <span id="hud-zulu-clock">SYNCING UTC ZULU...</span></span>
+        </div>
+        <div class="telemetry-item">
+          <span>🎯 ACTIVE TARGETS: <strong class="text-cyan" id="hud-incident-count">--</strong></span>
+        </div>
+        <div class="telemetry-item">
+          <span>📹 SURVEILLANCE CAMS: <strong class="text-green" id="hud-cam-count">--</strong> LIVE</span>
+        </div>
+      </div>
+
+      <!-- HUD Actions -->
+      <div class="hud-actions">
+        <button class="hud-btn" id="btn-audio-toggle">
+          <span class="icon">🔊</span> AUDIO: ON
+        </button>
+        <button class="hud-btn hud-btn-cyan" onclick="window.app.exportSitrep()">
+          <span>📄</span> EXPORT SITREP
+        </button>
+      </div>
+    </header>
+
+    <!-- SECONDARY CONTROLS BAR: VIEW SWITCHER & CATEGORY FILTERS -->
+    <nav class="hud-subbar">
+      <!-- View Modes -->
+      <div class="view-switcher-group">
+        <span class="text-muted">OPERATIONAL VIEW:</span>
+        <button class="view-btn active" data-view-target="globe">🌐 3D HOLOGLOBE</button>
+        <button class="view-btn" data-view-target="map">🗺️ 2D TACTICAL MAP</button>
+        <button class="view-btn" data-view-target="split">⚡ SPLIT VIEW</button>
+        <button class="view-btn" data-view-target="cams">📹 SURVEILLANCE WALL</button>
+        <button class="view-btn" data-view-target="cyber">💻 CYBER FORENSICS</button>
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="filter-chips-group">
+        <span class="text-muted">FILTER INTEL:</span>
+        <button class="filter-chip active" data-filter="ALL">ALL FEEDS</button>
+        <button class="filter-chip filter-chip-missile" data-filter="MISSILE">🚀 MISSILES &amp; SIRENS</button>
+        <button class="filter-chip" data-filter="CYBER">🛡️ CYBER (C2/IoC)</button>
+        <button class="filter-chip filter-chip-africa" data-filter="AFRICA">🌍 AFRICA MONITOR</button>
+        <button class="filter-chip" data-filter="MIL_AIR">✈️ MIL-AIR ISR</button>
+        <button class="filter-chip" data-filter="SENSITIVE">⚠️ SENSITIVE SITES</button>
+      </div>
+    </nav>
+
+    <!-- MAIN OPERATIONAL WORKSPACE (3-COLUMN LAYOUT) -->
+    <main class="main-workspace">
+
+      <!-- LEFT SIDEBAR: LIVE INCIDENT TELEMETRY STREAM -->
+      <aside class="sidebar-stream">
+        <div class="stream-search-box">
+          <input type="text" id="intel-search-input" placeholder="🔍 Search IP, CVE, Target, Callsign, Country..." />
+        </div>
+        <div class="stream-header">
+          <span>LIVE TELEMETRY STREAM</span>
+          <span class="pulse-dot-green"></span>
+        </div>
+        <div class="incident-stream-list" id="incident-stream-list">
+          <!-- Dynamic cards injected via JavaScript -->
+        </div>
+      </aside>
+
+      <!-- CENTER VIEWPORT (DYNAMIC 3D GLOBE / 2D MAP / SURVEILLANCE) -->
+      <section class="center-viewport">
+        
+        <!-- 3D Holographic Cyber Globe View -->
+        <div id="globe-wrapper">
+          <div id="main-globe-canvas"></div>
+          
+          <!-- Viewport HUD Watermarks -->
+          <div class="viewport-hud-watermark">
+            <div>RADAR FREQ: 9.4 GHz X-BAND // ACTIVE</div>
+            <div>ORBITAL TRACKING: CELESTRAK NORAD GP</div>
+            <div>COORDINATE PROJECTION: WGS-84 SPHERICAL</div>
+          </div>
+
+          <!-- Interactive Legend -->
+          <div class="viewport-hud-legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#ff3366;"></span> Kinetic / Missile Strike</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#00f3ff;"></span> Cyber Threat (C2/IoC)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ff7700;"></span> Africa Conflict Hotspot</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#00ff9d;"></span> Strategic Live Webcam</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ffb700;"></span> Military ISR Recon Aircraft</div>
+          </div>
+        </div>
+
+        <!-- 2D Leaflet Tactical Map View -->
+        <div id="map-wrapper">
+          <div id="tactical-map-view"></div>
+        </div>
+
+        <!-- Multi-Cam Surveillance Wall View -->
+        <div id="cams-wall-wrapper">
+          <div class="surveillance-wall-grid" id="surveillance-wall-grid">
+            <!-- Cam cards injected via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Cyber Forensics Recon Terminal View -->
+        <div id="cyber-recon-wrapper">
+          <div id="cyber-recon-content">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT SIDEBAR: QUICK RECON & MISSILE METRICS -->
+      <aside class="sidebar-intel">
+        <!-- Quick Strategic Cameras -->
+        <div class="intel-panel-block">
+          <div class="intel-block-title">
+            <span>📹 STRATEGIC OSINT CAMERAS</span>
+            <span class="badge-cam">LIVE</span>
+          </div>
+          <div class="quick-cam-list">
+            <div class="quick-cam-item" onclick="window.app.openCameraModal('cam-kyiv')">
+              <div class="quick-cam-info">
+                <span class="quick-cam-name">Kyiv Maidan Square</span>
+                <span class="quick-cam-meta">Ukraine • Conflict Zone Capital</span>
+              </div>
+              <span class="pulse-dot-green"></span>
+            </div>
+            <div class="quick-cam-item" onclick="window.app.openCameraModal('cam-redsea')">
+              <div class="quick-cam-info">
+                <span class="quick-cam-name">Bab-el-Mandeb Strait</span>
+                <span class="quick-cam-meta">Red Sea • ASBM Threat Zone</span>
+              </div>
+              <span class="text-red font-mono" style="font-size:9px;">HIGH ALERT</span>
+            </div>
+            <div class="quick-cam-item" onclick="window.app.openCameraModal('cam-taipei')">
+              <div class="quick-cam-info">
+                <span class="quick-cam-name">Taipei 101 Strait Airspace</span>
+                <span class="quick-cam-meta">Taiwan • Cross-Strait Radar</span>
+              </div>
+              <span class="pulse-dot-green"></span>
+            </div>
+            <div class="quick-cam-item" onclick="window.app.openCameraModal('cam-bosphorus')">
+              <div class="quick-cam-info">
+                <span class="quick-cam-name">Bosphorus Strait</span>
+                <span class="quick-cam-meta">Istanbul • Naval Chokepoint</span>
+              </div>
+              <span class="pulse-dot-green"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Missile & Kinetic Threat Metrics -->
+        <div class="intel-panel-block">
+          <div class="intel-block-title text-red">
+            <span>🚀 MISSILE &amp; SIREN STATUS</span>
+            <span class="badge-missile">FIRMS / ALERTS</span>
+          </div>
+          <div class="missile-radar-box">
+            <div class="missile-stat-row">
+              <span>AIR RAID SIRENS:</span>
+              <strong class="text-red">ACTIVE (DNIPRO, KHARKIV)</strong>
+            </div>
+            <div class="missile-stat-row">
+              <span>TRACKED ASBM VECTORS:</span>
+              <strong class="text-white">1 INBOUND (INTERCEPTED)</strong>
+            </div>
+            <div class="missile-stat-row">
+              <span>THERMAL ANOMALIES (FIRMS):</span>
+              <strong class="text-amber">14 CLUSTERS (92% CONF)</strong>
+            </div>
+            <div class="missile-stat-row">
+              <span>AIR DEFENSE BATTERIES:</span>
+              <strong class="text-cyan">PATRIOT, IRON DOME, NASAMS</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Africa Situation Hotspots (dedicated to monitor-the-situation.com/africa) -->
+        <div class="intel-panel-block">
+          <div class="intel-block-title text-amber">
+            <span>🌍 AFRICA SITUATION RADAR</span>
+            <span class="badge-africa">MONITOR-AFRICA</span>
+          </div>
+          <div class="quick-cam-list">
+            <div class="quick-cam-item" onclick="window.app.switchView('map'); window.tacticalMap && window.tacticalMap.flyTo(15.5, 32.5, 6);">
+              <div class="quick-cam-info">
+                <span class="quick-cam-name">Sudan (Khartoum / El Fasher)</span>
+                <span class="quick-cam-meta">SAF vs RSF Clashes • GPS Jam: 84%</span>
+              </div>
+              <span class="text-red font-mono" style="font-size:9px;">DEFCON 1</span>
+            </div>
+            <div class="quick-cam-item" onclick="window.app.switchView('map'); window.tacticalMap && window.tacticalMap.flyTo(-1.67, 29.2, 7);">
+              <div class="quick-cam-info">
+                <span class="quick-cam-name">Eastern DRC (Goma)</span>
+                <span class="quick-cam-meta">M23 Rebel Advance • SAM Deployed</span>
+              </div>
+              <span class="text-amber font-mono" style="font-size:9px;">HIGH</span>
+            </div>
+            <div class="quick-cam-item" onclick="window.app.switchView('map'); window.tacticalMap && window.tacticalMap.flyTo(14.2, 1.45, 6);">
+              <div class="quick-cam-info">
+                <span class="quick-cam-name">Sahel Tri-Border Sector</span>
+                <span class="quick-cam-meta">Drone Ambushes • Niger/Mali</span>
+              </div>
+              <span class="text-red font-mono" style="font-size:9px;">DEFCON 1</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+
+    <!-- BOTTOM TRAY / API STATUS DOCK -->
+    <footer class="hud-bottom-dock">
+      <div class="api-status-pills" id="api-status-pills">
+        <!-- Live API status pills injected via JavaScript -->
+      </div>
+      <div class="bottom-dock-actions">
+        <button class="hud-btn hud-btn-cyan" onclick="window.app.openApiInspectorModal()">
+          <span>⚡</span> COLLECTED APIS REGISTRY
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- =========================================================================
+       3. MODAL WINDOWS (SURVEILLANCE, DOSSIER, API INSPECTOR)
+       ========================================================================= -->
+
+  <!-- Live Surveillance Modal (Public CCTVs with Night Vision/FLIR Thermal) -->
+  <div class="cyber-modal" id="surveillance-modal">
+    <div class="cyber-modal-backdrop"></div>
+    <div class="cyber-modal-dialog">
+      <div id="surveillance-modal-content">
+        <!-- Content injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Incident Forensic Dossier Modal -->
+  <div class="cyber-modal" id="dossier-modal">
+    <div class="cyber-modal-backdrop"></div>
+    <div class="cyber-modal-dialog">
+      <div class="surv-modal-header">
+        <h2>FORENSIC INCIDENT INTELLIGENCE DOSSIER</h2>
+        <button class="modal-close-btn" onclick="window.app.closeModals()">✕</button>
+      </div>
+      <div class="dossier-modal-body" id="dossier-modal-body">
+        <!-- Content injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Raw API Inspector Modal -->
+  <div class="cyber-modal" id="api-inspector-modal">
+    <div class="cyber-modal-backdrop"></div>
+    <div class="cyber-modal-dialog">
+      <div id="api-inspector-content">
+        <!-- Content injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       4. EXTERNAL SCRIPTS & APPLICATION MODULES
+       ========================================================================= -->
+  <!-- Three.js (WebGL 3D Engine) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Leaflet JS (2D Tactical Map) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Application Modules -->
+  <script src="js/config.js"></script>
+  <script src="js/audioFx.js"></script>
+  <script src="js/globe3d.js"></script>
+  <script src="js/tacticalMap.js"></script>
+  <script src="js/apiManager.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
